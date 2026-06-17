@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Enter Remap — Bookmarklet</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0c0c;
+      --surface: #141414;
+      --surface2: #1a1a1a;
+      --border: #222;
+      --border2: #2e2e2e;
+      --text: #dcdcdc;
+      --muted: #606060;
+      --dim: #888;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    /* Header */
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -.025em;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    /* ── Drag target — the signature element ── */
+    .drag-wrap {
+      margin-bottom: 10px;
+    }
+
+    .drag-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    a.drag-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 100%;
+      padding: 20px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: grab;
+      transition: background .12s, border-color .12s;
+      -webkit-user-drag: element;
+    }
+
+    a.drag-btn:hover {
+      background: var(--surface2);
+      border-color: #383838;
+    }
+
+    a.drag-btn:active { cursor: grabbing; }
+
+    .drag-icon { font-size: 22px; line-height: 1; }
+    .drag-name { font-size: 13px; }
+    .drag-hint { font-size: 11px; color: var(--muted); font-family: -apple-system, sans-serif; font-weight: 400; margin-top: 2px; }
+
+    .drag-note {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 6px;
+      margin-bottom: 28px;
+    }
+
+    /* ── Key bindings ── */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .bindings {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .binding {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .binding:last-child { border-bottom: none; }
+
+    .binding-result {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    kbd {
+      display: inline-block;
+      background: #1e1e1e;
+      border: 1px solid #303030;
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #c8c8c8;
+      line-height: 1.5;
+    }
+
+    .plus {
+      color: var(--muted);
+      margin: 0 3px;
+      font-size: 10px;
+    }
+
+    /* ── Steps ── */
+    .steps {
+      list-style: none;
+      counter-reset: step;
+      margin-bottom: 28px;
+    }
+
+    .step {
+      counter-increment: step;
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--dim);
+      padding: 5px 0;
+    }
+
+    .step::before {
+      content: counter(step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      border: 1px solid var(--border2);
+      border-radius: 50%;
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step strong { color: var(--text); font-weight: 500; }
+
+    /* ── Manual fallback ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .code-wrap {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      max-height: 72px;
+      overflow: hidden;
+    }
+
+    .code-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 28px;
+      background: linear-gradient(transparent, var(--surface));
+      pointer-events: none;
+    }
+
+    #bm-code {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #555;
+      word-break: break-all;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .copy-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font: 12px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+      cursor: pointer;
+      transition: color .12s, border-color .12s;
+    }
+
+    .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+
+    .manual-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    .manual-hint code {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <p class="eyebrow">claude.ai · duck browser workaround</p>
+    <h1>Claude Enter Remap</h1>
+    <p class="subtitle">Since Duck Browser doesn't support extensions, this bookmarklet does the same job. Drag it to your bookmarks bar once — then click it whenever you open claude.ai.</p>
+
+    <div class="drag-wrap">
+      <span class="drag-label">step 1 — drag this to your bookmarks bar</span>
+      <a class="drag-btn" href="javascript:(function(){ if(window.__cer)return;window.__cer=1; function inEd(el){while(el&amp;&amp;el!==document.body){if(el.classList&amp;&amp;el.classList.contains(&#x27;ProseMirror&#x27;))return true;if(el.isContentEditable)return true;el=el.parentElement;}return false;} function getBtn(){var sels=[&#x27;button[aria-label=&quot;Send message&quot;]&#x27;,&#x27;button[aria-label=&quot;Send Message&quot;]&#x27;,&#x27;button[data-testid=&quot;send-button&quot;]&#x27;];for(var i=0;i&lt;sels.length;i++){var b=document.querySelector(sels[i]);if(b&amp;&amp;!b.disabled)return b;}return Array.from(document.querySelectorAll(&#x27;button:not([disabled])&#x27;)).find(function(b){return /send/i.test(b.getAttribute(&#x27;aria-label&#x27;)||&#x27;&#x27;);});} function mkEv(type,sh){return new KeyboardEvent(type,{key:&#x27;Enter&#x27;,code:&#x27;Enter&#x27;,keyCode:13,which:13,shiftKey:sh,ctrlKey:false,metaKey:false,altKey:false,bubbles:true,cancelable:true,composed:true});} document.addEventListener(&#x27;keydown&#x27;,function(ev){if(!ev.isTrusted||ev.key!==&#x27;Enter&#x27;||ev.shiftKey||!inEd(ev.target))return;ev.preventDefault();ev.stopImmediatePropagation();if(ev.ctrlKey||ev.metaKey){var b=getBtn();if(b)b.click();}else{ev.target.dispatchEvent(mkEv(&#x27;keydown&#x27;,true));}},true); document.addEventListener(&#x27;keyup&#x27;,function(ev){if(!ev.isTrusted||ev.key!==&#x27;Enter&#x27;||ev.shiftKey||ev.ctrlKey||ev.metaKey||!inEd(ev.target))return;ev.preventDefault();ev.stopImmediatePropagation();ev.target.dispatchEvent(mkEv(&#x27;keyup&#x27;,true));},true); var t=document.createElement(&#x27;div&#x27;);t.textContent=&#x27;\u21b5 Enter remap \u2014 active&#x27;;t.style.cssText=&#x27;position:fixed;bottom:20px;right:20px;background:#111;color:#e0e0e0;font:12px/1.4 ui-monospace,monospace;padding:8px 14px;border-radius:8px;z-index:9999999;pointer-events:none;border:1px solid #2a2a2a;&#x27;;document.body.appendChild(t);setTimeout(function(){t.style.transition=&#x27;opacity .5s&#x27;;t.style.opacity=&#x27;0&#x27;;setTimeout(function(){t.remove();},500);},2500); })();">
+        <span class="drag-icon">⌨</span>
+        <span class="drag-name">Claude Enter Remap</span>
+        <span class="drag-hint">drag me to bookmarks bar</span>
+      </a>
+      <p class="drag-note">or right-click → "Bookmark this link"</p>
+    </div>
+
+    <p class="section-label">what it remaps</p>
+    <div class="bindings">
+      <div class="binding">
+        <div><kbd>Enter</kbd></div>
+        <div class="binding-result">new line</div>
+      </div>
+      <div class="binding">
+        <div><kbd>Shift</kbd><span class="plus">+</span><kbd>Enter</kbd></div>
+        <div class="binding-result">new line</div>
+      </div>
+      <div class="binding">
+        <div><kbd>Ctrl</kbd><span class="plus">+</span><kbd>Enter</kbd></div>
+        <div class="binding-result">send message</div>
+      </div>
+    </div>
+
+    <p class="section-label">step 2 — how to use</p>
+    <ol class="steps">
+      <li class="step">Show your bookmarks bar if hidden — <strong>Ctrl+Shift+B</strong></li>
+      <li class="step">Open <strong>claude.ai</strong> in Duck Browser</li>
+      <li class="step">Click the <strong>Claude Enter Remap</strong> bookmark once</li>
+      <li class="step">A small toast confirms it's active — done</li>
+    </ol>
+
+    <hr class="divider">
+
+    <p class="section-label">can't drag? paste manually</p>
+    <div class="code-wrap">
+      <pre id="bm-code">javascript:(function(){ if(window.__cer)return;window.__cer=1; function inEd(el){while(el&amp;&amp;el!==document.body){if(el.classList&amp;&amp;el.classList.contains(&#x27;ProseMirror&#x27;))return true;if(el.isContentEditable)return true;el=el.parentElement;}return false;} function getBtn(){var sels=[&#x27;button[aria-label=&quot;Send message&quot;]&#x27;,&#x27;button[aria-label=&quot;Send Message&quot;]&#x27;,&#x27;button[data-testid=&quot;send-button&quot;]&#x27;];for(var i=0;i&lt;sels.length;i++){var b=document.querySelector(sels[i]);if(b&amp;&amp;!b.disabled)return b;}return Array.from(document.querySelectorAll(&#x27;button:not([disabled])&#x27;)).find(function(b){return /send/i.test(b.getAttribute(&#x27;aria-label&#x27;)||&#x27;&#x27;);});} function mkEv(type,sh){return new KeyboardEvent(type,{key:&#x27;Enter&#x27;,code:&#x27;Enter&#x27;,keyCode:13,which:13,shiftKey:sh,ctrlKey:false,metaKey:false,altKey:false,bubbles:true,cancelable:true,composed:true});} document.addEventListener(&#x27;keydown&#x27;,function(ev){if(!ev.isTrusted||ev.key!==&#x27;Enter&#x27;||ev.shiftKey||!inEd(ev.target))return;ev.preventDefault();ev.stopImmediatePropagation();if(ev.ctrlKey||ev.metaKey){var b=getBtn();if(b)b.click();}else{ev.target.dispatchEvent(mkEv(&#x27;keydown&#x27;,true));}},true); document.addEventListener(&#x27;keyup&#x27;,function(ev){if(!ev.isTrusted||ev.key!==&#x27;Enter&#x27;||ev.shiftKey||ev.ctrlKey||ev.metaKey||!inEd(ev.target))return;ev.preventDefault();ev.stopImmediatePropagation();ev.target.dispatchEvent(mkEv(&#x27;keyup&#x27;,true));},true); var t=document.createElement(&#x27;div&#x27;);t.textContent=&#x27;\u21b5 Enter remap \u2014 active&#x27;;t.style.cssText=&#x27;position:fixed;bottom:20px;right:20px;background:#111;color:#e0e0e0;font:12px/1.4 ui-monospace,monospace;padding:8px 14px;border-radius:8px;z-index:9999999;pointer-events:none;border:1px solid #2a2a2a;&#x27;;document.body.appendChild(t);setTimeout(function(){t.style.transition=&#x27;opacity .5s&#x27;;t.style.opacity=&#x27;0&#x27;;setTimeout(function(){t.remove();},500);},2500); })();</pre>
+    </div>
+    <button class="copy-btn" onclick="doCopy()">Copy code to clipboard</button>
+    <p class="manual-hint">
+      Create a bookmark → right-click it → Edit → paste this code as the URL.<br>
+      Then use it the same way: open claude.ai, click the bookmark.
+    </p>
+
+  </div>
+
+  <script>
+    function doCopy() {
+      var code = 'javascript:(function(){ if(window.__cer)return;window.__cer=1; function inEd(el){while(el&&el!==document.body){if(el.classList&&el.classList.contains(\'ProseMirror\'))return true;if(el.isContentEditable)return true;el=el.parentElement;}return false;} function getBtn(){var sels=[\'button[aria-label="Send message"]\',\'button[aria-label="Send Message"]\',\'button[data-testid="send-button"]\'];for(var i=0;i<sels.length;i++){var b=document.querySelector(sels[i]);if(b&&!b.disabled)return b;}return Array.from(document.querySelectorAll(\'button:not([disabled])\')).find(function(b){return /send/i.test(b.getAttribute(\'aria-label\')||\'\');});} function mkEv(type,sh){return new KeyboardEvent(type,{key:\'Enter\',code:\'Enter\',keyCode:13,which:13,shiftKey:sh,ctrlKey:false,metaKey:false,altKey:false,bubbles:true,cancelable:true,composed:true});} document.addEventListener(\'keydown\',function(ev){if(!ev.isTrusted||ev.key!==\'Enter\'||ev.shiftKey||!inEd(ev.target))return;ev.preventDefault();ev.stopImmediatePropagation();if(ev.ctrlKey||ev.metaKey){var b=getBtn();if(b)b.click();}else{ev.target.dispatchEvent(mkEv(\'keydown\',true));}},true); document.addEventListener(\'keyup\',function(ev){if(!ev.isTrusted||ev.key!==\'Enter\'||ev.shiftKey||ev.ctrlKey||ev.metaKey||!inEd(ev.target))return;ev.preventDefault();ev.stopImmediatePropagation();ev.target.dispatchEvent(mkEv(\'keyup\',true));},true); var t=document.createElement(\'div\');t.textContent=\'\\u21b5 Enter remap \\u2014 active\';t.style.cssText=\'position:fixed;bottom:20px;right:20px;background:#111;color:#e0e0e0;font:12px/1.4 ui-monospace,monospace;padding:8px 14px;border-radius:8px;z-index:9999999;pointer-events:none;border:1px solid #2a2a2a;\';document.body.appendChild(t);setTimeout(function(){t.style.transition=\'opacity .5s\';t.style.opacity=\'0\';setTimeout(function(){t.remove();},500);},2500); })();';
+      navigator.clipboard.writeText(code).then(function() {
+        var btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy code to clipboard'; }, 2000);
+      }).catch(function() {
+        // Fallback: select and copy
+        var pre = document.getElementById('bm-code');
+        var range = document.createRange();
+        range.selectNode(pre);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+      });
+    }
+  </script>
+</body>
+</html>
