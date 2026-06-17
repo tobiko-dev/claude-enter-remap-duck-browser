@@ -2,29 +2,32 @@
 #SingleInstance Force
 
 ; ── CONFIGURATION ─────────────────────────────────────────────────────────────
-;
-; Window title keywords that activate the remap.
-; The check runs only when you press Enter — never on a timer.
-;
-; Default: claude.ai only
-SITES := ["Claude"]
-;
-; Uncomment the line below to enable all major AI chat sites instead:
-; SITES := ["Claude", "ChatGPT", "Gemini", "Perplexity", "Copilot", "Le Chat"]
-;
+FIRE_MODE := true
+SITES     := ["Claude"]
+; SITES  := ["Claude", "ChatGPT", "Gemini", "Perplexity", "Copilot", "Le Chat"]
 ; ─────────────────────────────────────────────────────────────────────────────
 
-A_IconHidden := true   ; No tray icon, fully silent
+; ── Tray ──────────────────────────────────────────────────────────────────────
+A_TrayMenu.Delete()
+A_TrayMenu.Add("⌨  Claude Enter Remap  —  running", (*) => {})
+A_TrayMenu.Disable("⌨  Claude Enter Remap  —  running")
+A_TrayMenu.Add()
+A_TrayMenu.Add("Reload", (*) => Reload())
+A_TrayMenu.Add("Exit", (*) => ExitApp())
+A_TrayMenu.Default := "⌨  Claude Enter Remap  —  running"
+
+TrayTip("Claude Enter Remap", "Active — Enter remapped on DuckDuckGo", 1)
 
 ; ── Condition ─────────────────────────────────────────────────────────────────
-; Called only when Enter is physically pressed — never on a timer or loop.
 IsAISite() {
-    global SITES
+    global FIRE_MODE, SITES
     try {
-        proc  := StrLower(WinGetProcessName("A"))
-        title := WinGetTitle("A")
+        proc := StrLower(WinGetProcessName("A"))
         if !InStr(proc, "duck")
             return false
+        if FIRE_MODE
+            return true
+        title := WinGetTitle("A")
         for site in SITES
             if InStr(title, site)
                 return true
@@ -35,11 +38,9 @@ IsAISite() {
 }
 
 ; ── Key remaps ────────────────────────────────────────────────────────────────
-; $ = physical keypresses only, so Send below cannot re-trigger these.
-
 #HotIf IsAISite()
 
-$Enter::  Send "+{Enter}"   ; Enter       →  new line     (Shift+Enter)
-$^Enter:: Send "{Enter}"    ; Ctrl+Enter  →  send message (Enter)
+$Enter::  Send "+{Enter}"
+$^Enter:: Send "{Ctrl Up}{Enter}"
 
 #HotIf
