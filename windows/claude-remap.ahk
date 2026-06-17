@@ -1,3 +1,15 @@
+; ================================================================
+; Claude Enter Remap
+; Author:  Woobin Park
+; GitHub:  https://github.com/tobiko-dev
+; Version: 1.0.0
+; License: MIT
+;
+; Remaps keyboard shortcuts in AI chat interfaces running inside
+; DuckDuckGo browser (including the Fire private window):
+;   Enter       →  new line
+;   Ctrl+Enter  →  send message
+; ================================================================
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
